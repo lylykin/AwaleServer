@@ -1,5 +1,6 @@
 #include "game.h"
-
+int plateau[2][6] = {{4,4,4,4,4,4},{4,4,4,4,4,4}};
+int grenier[2] = {0,0};
 void winner(int* grenier) {
     if (grenier[0] > grenier[1]) {
         printf( "Victoire du joueur 1");
@@ -56,12 +57,15 @@ Position repart_seed(int seeds, int trou_selected, int joueur, int (*plateau)[NB
                 t = 0;
                 j = (j + 1) % 2;
             }
-            if (j == joueur && t == trou_selected) continue;
+            if (j == joueur && t == trou_selected - 1) {
+                t++;
+                continue;
+            }
             plateau[j][t] +=1;
             seeds--;
             t++;
     }
-    Position fin = {j,t};
+    Position fin = {j,t-1};
     return fin;
 }
 
@@ -70,47 +74,64 @@ void mettre_dans_grenier(int joueur,Position fin, int plateau[2][6], int grenier
     int t = fin.trou;
     int capture = 0;
 
-    if (plateau[camp][t] == 1) {
-        capture += plateau[camp][t];
-               plateau[camp][t] = 0;
-               t--;
-    }
+    if (camp != joueur) {
+      while (t >= 0 && (plateau[camp][t] == 2 || plateau[camp][t] == 3)) {
+          capture += plateau[camp][t];
+          plateau[camp][t] = 0;
+          t--;
+      }
+  }
     grenier[joueur]+=capture;
 }
 
-int game(int (*plateau)[NB_TROUS], int * grenier) {
-    int somme_grains = 0;
-    int joueur = 0;
-    int trou_selected;
-    int seeds;
-    Position trou_fin;
+int game(void) {
+      Game g;
+      init_game(&g, 0);
 
-    //condition d'arret : un joueur ne peux plus joueur
-    while (end_game(plateau) == -1) {
+      while (end_game(g.plateau) == -1) {
+          show_plateau(g.plateau, g.grenier);
+          printf("Joueur %d Sélectionnez un trou : ", g.joueur + 1);
 
-        // démarrage du tour du joueur
-        show_plateau(plateau, grenier);
-        printf("Joueur %d Sélectionnez un trou : ", joueur + 1);
-        scanf("%d", &trou_selected);
+          int trou;
+          if (scanf("%d", &trou) != 1) {
+              return 1;
+          }
 
-        while (trou_selected < 1 || trou_selected > 6){
-          printf("Merci de rentrer une bonne valeur");
-           scanf("%d", &trou_selected);
+          int r = play_move(&g, trou);
+          if (r == -1) {
+              printf("Merci de rentrer une valeur entre 1 et 6\n");
+          } else if (r == -2) {
+              printf("Trou invalide : ce trou est vide\n");
+          }
+      }
 
-       }
-       seeds = plateau[joueur][trou_selected-1];
-
-       while (seeds == 0){
-           printf("Trou invalide");
-           scanf("%d", &trou_selected);
-       }
-        trou_fin = repart_seed(seeds,trou_selected,joueur,plateau);
-        mettre_dans_grenier(joueur, trou_fin, plateau, grenier);
-        joueur = (joueur + 1) %2;
-
+      show_plateau(g.plateau, g.grenier);
+      winner(g.grenier);
+      return 0;
+  }
+void init_game(Game *g, int premier){
+    for (int c = 0; c < 2; c++){
+        for (int t = 0; t<NB_TROUS; t++){
+           g->plateau[c][t] = 4;
+        }
+        g->grenier[c] = 0;
     }
-
-    winner(grenier);
-
-    return 0;
+    g->joueur = premier;
 }
+int play_move(Game *g, int trou) {
+      if (trou < 1 || trou > NB_TROUS) {
+          return -1;
+      }
+
+      int seeds = g->plateau[g->joueur][trou - 1];
+      if (seeds == 0) {
+          return -2;
+      }
+
+      g->plateau[g->joueur][trou - 1] = 0;
+      Position fin = repart_seed(seeds, trou, g->joueur, g->plateau);
+      mettre_dans_grenier(g->joueur, fin, g->plateau, g->grenier);
+      g->joueur = (g->joueur + 1) % 2;
+
+      return 0;
+  }

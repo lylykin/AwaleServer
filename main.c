@@ -2,6 +2,6 @@
 #include "game.h"
 
 int main(){
-    game (plateau,grenier);
+    game();
    return 0;
 }
