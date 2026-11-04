@@ -3,7 +3,7 @@ CFLAGS  = -Wall -Wextra -std=c11
 LDFLAGS =
 
 OBJS = main.o game.o
-TARGET = myprogram
+TARGET = awale_game
 
 all: $(TARGET)
 

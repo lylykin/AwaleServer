@@ -1,6 +1,11 @@
 #include "game.h"
-int plateau[2][6] = {{4,4,4,4,4,4},{4,4,4,4,4,4}};
+#include <stdio.h>
+int plateau[2][6]= { {4,4,4,4,4,4}, {4,4,4,4,4,4}};
 int grenier[2] = {0,0};
+char* nom_joueur_1 = "Joueur 1";
+char* nom_joueur_2 = "Joueur 2";
+
+
 void winner(int* grenier) {
     if (grenier[0] > grenier[1]) {
         printf( "Victoire du joueur 1");
@@ -31,32 +36,52 @@ int end_game(int plateau[NB_JOUEURS][NB_TROUS]) {
   return (end_game);
 }
 
-void show_plateau(int plateau[NB_JOUEURS][NB_TROUS], int *grenier) {
-  printf("\n Joueur 0 : |  ");
+void show_plateau(int plateau[NB_JOUEURS][NB_TROUS], int *grenier, int joueur, char* nom_joueur_1, char* nom_joueur_2) {
+
+if (joueur == 1) {
+
+
+  printf("\n %s : |  ", nom_joueur_1);
   for (int i = NB_TROUS - 1; i >= 0; i--) {
     printf("%d  |  ", plateau[0][i]);
   }
   printf("\n             ---------------------------------- \n");
-  printf(" Joueur 1 : |  ");
+  printf(" %s : |  ", nom_joueur_2);
   for (int i = 0; i < NB_TROUS; i++) {
     printf("%d  |  ", plateau[1][i]);
   }
-  printf(" \n \n Grenier : \n Joueur 0 = %d \n Joueur 1 = %d\n\n", grenier[0],
+  printf(" \n \n Grenier : \n Joueur 1 = %d \n Joueur 2 = %d\n\n", grenier[0],
          grenier[1]);
+}
+else {
+    printf("\n %s : |  ", nom_joueur_2);
+     for (int i = NB_TROUS - 1; i >= 0; i--) {
+       printf("%d  |  ", plateau[1][i]);
+     }
+     printf("\n             ---------------------------------- \n");
+     printf(" %s : |  ", nom_joueur_1);
+     for (int i = 0; i < NB_TROUS; i++) {
+       printf("%d  |  ", plateau[0][i]);
+     }
+     printf(" \n \n Grenier : \n Joueur 1 = %d \n Joueur 2 = %d\n\n", grenier[0],
+            grenier[1]);
+   }
 }
 
 Position repart_seed(int seeds, int trou_selected, int joueur,
                      int plateau[NB_JOUEURS][NB_TROUS]) {
   int t = trou_selected;
   int j = joueur;
+
   while (seeds > 0) {
+
     // joueur 0 en haut, joueur 1 en bas.
     if (t == 6) {
       t = 0;
       j = (j + 1) % 2;
     }
-    if (j == joueur && t == trou_selected)
-      continue;
+    // if (j == joueur && t == trou_selected)
+      // continue;
     plateau[j][t] += 1;
     seeds--;
     t++;
@@ -70,8 +95,9 @@ void mettre_dans_grenier(int joueur, Position fin, int plateau[NB_JOUEURS][NB_TR
   int camp = fin.camp;
   int t = fin.trou;
   int capture = 0;
+  printf("Valeurs : \n camp : %d \n t : %d\n", camp, t);
 
-  if (plateau[camp][t] == 1) {
+  if (plateau[camp][t] != 1 && camp != joueur) {
     capture += plateau[camp][t];
     plateau[camp][t] = 0;
     t--;
@@ -90,29 +116,31 @@ int game(int plateau[NB_JOUEURS][NB_TROUS], int *grenier) {
   while (!end_game(plateau)) {
 
     // démarrage du tour du joueur
-    show_plateau(plateau, grenier);
-    printf("Joueur %d Sélectionnez un trou : ", joueur + 1);
+    show_plateau(plateau, grenier, joueur, nom_joueur_1, nom_joueur_2);
+    printf("Joueur %d : Sélectionnez un trou : ", joueur + 1);
     scanf("%d", &trou_selected);
 
-    while (trou_selected < 1 || trou_selected > 6) {
-      printf("Merci de rentrer une bonne valeur");
-      scanf("%d", &trou_selected);
-    }
     seeds = plateau[joueur][trou_selected - 1];
 
-    while (seeds == 0) {
-      printf("Trou invalide");
+    while (trou_selected < 1 || trou_selected > 6 || seeds == 0) {
+      fprintf(stderr, "Trou invalide. Merci de rentrer une bonne valeur\n");
       scanf("%d", &trou_selected);
+      seeds = plateau[joueur][trou_selected - 1];
     }
+
+    plateau[joueur][trou_selected-1] = 0;
+    printf ("[debug] appel de repart_seed\n ");
     trou_fin = repart_seed(seeds, trou_selected, joueur, plateau);
+    printf ("[debug] appel de mettre_dans-grenier\n");
     mettre_dans_grenier(joueur, trou_fin, plateau, grenier);
     joueur = (joueur + 1) % 2;
+
   }
 
   winner(grenier);
-
   return 0;
 }
+
 int play_move(Game *g, int trou) {
       if (trou < 1 || trou > NB_TROUS) {
           return -1;

@@ -39,5 +39,6 @@ static int init_connection(const char *address);
 static void end_connection(int sock);
 static int read_server(SOCKET sock, char *buffer);
 static void write_server(SOCKET sock, const char *buffer);
-
+static void challenge_autre_client(SOCKET sock, char *buffer);
+static  int repondre_challenge(SOCKET sock, char *buffer);
 #endif /* guard */

@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "client.h"
-
+static char challenger[BUF_SIZE] = "";
 static void init(void)
 {
 #ifdef WIN32
@@ -79,7 +79,15 @@ static void app(const char *address, const char *name)
             printf("Server disconnected !\n");
             break;
          }
-         puts(buffer);
+         if (strncmp(buffer, "CHALLENGE_FROM ", strlen("CHALLENGE_FROM ")) == 0)
+         {
+            snprintf(challenger, sizeof challenger, "%s", buffer + strlen("CHALLENGE_FROM "));
+            printf("%s vous défie ! Accepter ? (o/n)\n", challenger);
+         }
+         else
+         {
+            puts(buffer);
+         }
       }
    }
 
@@ -137,7 +145,41 @@ static int read_server(SOCKET sock, char *buffer)
 
    return n;
 }
-
+static void challenge_autre_client(SOCKET sock, char *buffer){
+     char msg[BUF_SIZE];
+     const char *adversaire = buffer + strlen("/challenge ");
+     if (*adversaire == '\0'){
+         printf("Usage: /challenge <pseudo>\n");
+         return;
+     }
+     snprintf(msg, sizeof msg, "CHALLENGE %s", adversaire);
+     write_server(sock, msg);
+}
+static  int repondre_challenge(SOCKET sock, char *buffer){
+        char msg[BUF_SIZE];
+        if (challenger[0] == '\0'){
+            return 0;
+        }
+        else if (strcmp(buffer, "o") == 0){
+            snprintf(msg, sizeof msg, "ACCEPT %s", challenger);
+        }
+        else if (strcmp(buffer,"n") == 0){
+            snprintf(msg, sizeof msg, "REFUSE %s", challenger);
+        }
+        else {
+            return 0;
+        }
+        if (!repondre_challenge(sock, buffer)){
+            if (strncmp(buffer, "/challenge", strlen("/challenge")) == 0){
+                challenge_autre_client(sock, buffer);
+            }
+            else{
+                write_server(sock, buffer);
+            }
+        }
+        challenger[0] = '\0';
+        return 1;
+}
 static void write_server(SOCKET sock, const char *buffer)
 {
    if(send(sock, buffer, strlen(buffer), 0) < 0)
@@ -163,8 +205,3 @@ int main(int argc, char **argv)
 
    return EXIT_SUCCESS;
 }
-
-
-
-
-

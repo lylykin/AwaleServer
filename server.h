@@ -49,4 +49,6 @@ static void send_message_to_all_clients(Client *clients, Client client, int actu
 static void remove_client(Client *clients, int to_remove, int *actual);
 static void clear_clients(Client *clients, int actual);
 static void send_list(Client *clients, int actual, SOCKET to);
+static int find_client(Client *clients, int actual, const char *name);
+static void send_challenge(Client *clients, int actual, Client sender, const char *buffer);
 #endif /* guard */
