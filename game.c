@@ -2,16 +2,18 @@
 #include <stdio.h>
 int plateau[2][6]= { {4,4,4,4,4,4}, {4,4,4,4,4,4}};
 int grenier[2] = {0,0};
-char* nom_joueur_1 = "Joueur 1";
-char* nom_joueur_2 = "Joueur 2";
+char* nom_joueur_1 = "Clelie";
+char* nom_joueur_2 = "Deborah";
 
 
-void winner(int* grenier) {
+void winner(int* grenier, char* nom_joueur_1, char* nom_joueur_2) {
+
+    printf("========================FIN DE LA PARTIE=============================");
     if (grenier[0] > grenier[1]) {
-        printf( "Victoire du joueur 1");
+        printf( "Victoire de %s", nom_joueur_1);
     }
     else if (grenier[1] > grenier[0]) {
-        printf( "Victoire du joueur 2");
+        printf( "Victoire de %s", nom_joueur_2);
     }
     else {
         printf("Egalité entre les deux joueurs");
@@ -50,8 +52,7 @@ if (joueur == 1) {
   for (int i = 0; i < NB_TROUS; i++) {
     printf("%d  |  ", plateau[1][i]);
   }
-  printf(" \n \n Grenier : \n Joueur 1 = %d \n Joueur 2 = %d\n\n", grenier[0],
-         grenier[1]);
+  printf(" \n \n Grenier : \n %s = %d \n %s = %d\n\n",nom_joueur_1, grenier[0], nom_joueur_2, grenier[1]);
 }
 else {
     printf("\n %s : |  ", nom_joueur_2);
@@ -63,8 +64,7 @@ else {
      for (int i = 0; i < NB_TROUS; i++) {
        printf("%d  |  ", plateau[0][i]);
      }
-     printf(" \n \n Grenier : \n Joueur 1 = %d \n Joueur 2 = %d\n\n", grenier[0],
-            grenier[1]);
+     printf(" \n \n Grenier : \n %s = %d \n %s = %d\n\n",nom_joueur_1, grenier[0], nom_joueur_2, grenier[1]);
    }
 }
 
@@ -93,7 +93,7 @@ Position repart_seed(int seeds, int trou_selected, int joueur,
 void mettre_dans_grenier(int joueur, Position fin, int plateau[NB_JOUEURS][NB_TROUS],
                          int grenier[2]) {
   int camp = fin.camp;
-  int t = fin.trou;
+  int t = fin.trou - 1;
   int capture = 0;
   printf("Valeurs : \n camp : %d \n t : %d\n", camp, t);
 
@@ -129,15 +129,13 @@ int game(int plateau[NB_JOUEURS][NB_TROUS], int *grenier) {
     }
 
     plateau[joueur][trou_selected-1] = 0;
-    printf ("[debug] appel de repart_seed\n ");
     trou_fin = repart_seed(seeds, trou_selected, joueur, plateau);
-    printf ("[debug] appel de mettre_dans-grenier\n");
     mettre_dans_grenier(joueur, trou_fin, plateau, grenier);
     joueur = (joueur + 1) % 2;
 
   }
 
-  winner(grenier);
+  winner(grenier, nom_joueur_1, nom_joueur_2);
   return 0;
 }
 

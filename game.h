@@ -24,7 +24,7 @@ typedef struct {
 } Game;
 void init_game(Game *g, int premier);
 int play_move(Game *g, int trou);
-void winner(int *grenier);
+void winner(int *grenier, char* nom_joueur_1, char* nom_joueur_2);
 
 int end_game(int plateau[NB_JOUEURS][NB_TROUS]);
 
