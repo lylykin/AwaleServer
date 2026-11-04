@@ -1,13 +1,16 @@
 #include "game.h"
-
-void winner(int *grenier) {
-  if (grenier[0] > grenier[1]) {
-    printf("Victoire du joueur 1");
-  } else if (grenier[1] > grenier[0]) {
-    printf("Victoire du joueur 2");
-  } else {
-    printf("Egalité entre les deux joueurs");
-  }
+int plateau[2][6] = {{4,4,4,4,4,4},{4,4,4,4,4,4}};
+int grenier[2] = {0,0};
+void winner(int* grenier) {
+    if (grenier[0] > grenier[1]) {
+        printf( "Victoire du joueur 1");
+    }
+    else if (grenier[1] > grenier[0]) {
+        printf( "Victoire du joueur 2");
+    }
+    else {
+        printf("Egalité entre les deux joueurs");
+    }
 }
 
 int end_game(int plateau[NB_JOUEURS][NB_TROUS]) {
@@ -110,3 +113,20 @@ int game(int plateau[NB_JOUEURS][NB_TROUS], int *grenier) {
 
   return 0;
 }
+int play_move(Game *g, int trou) {
+      if (trou < 1 || trou > NB_TROUS) {
+          return -1;
+      }
+
+      int seeds = g->plateau[g->joueur][trou - 1];
+      if (seeds == 0) {
+          return -2;
+      }
+
+      g->plateau[g->joueur][trou - 1] = 0;
+      Position fin = repart_seed(seeds, trou, g->joueur, g->plateau);
+      mettre_dans_grenier(g->joueur, fin, g->plateau, g->grenier);
+      g->joueur = (g->joueur + 1) % 2;
+
+      return 0;
+  }

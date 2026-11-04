@@ -1,3 +1,5 @@
+#ifndef GAME_H
+#define GAME_H
 #include <stdio.h>
 #define MAX_GRAINS 48
 #define MAX_NOM 32
@@ -17,8 +19,13 @@ typedef struct{
     int camp;
     int trou;
 }Position;
-
-
+typedef struct {
+    int plateau[2][NB_TROUS];
+    int grenier[2];
+    int joueur;
+} Game;
+void init_game(Game *g, int premier);
+int play_move(Game *g, int trou);
 void winner(int* grenier);
 
 int end_game(int plateau[NB_JOUEURS][NB_TROUS]);
