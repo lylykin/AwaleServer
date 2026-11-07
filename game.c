@@ -10,10 +10,10 @@ void winner(int* grenier, char* nom_joueur_1, char* nom_joueur_2) {
 
     printf("========================FIN DE LA PARTIE=============================");
     if (grenier[0] > grenier[1]) {
-        printf( "Victoire de %s", nom_joueur_1);
+        printf("Victoire de %s", nom_joueur_1);
     }
     else if (grenier[1] > grenier[0]) {
-        printf( "Victoire de %s", nom_joueur_2);
+        printf("Victoire de %s", nom_joueur_2);
     }
     else {
         printf("Egalité entre les deux joueurs");
@@ -22,7 +22,7 @@ void winner(int* grenier, char* nom_joueur_1, char* nom_joueur_2) {
 
 int end_game(int plateau[NB_JOUEURS][NB_TROUS]) {
   int sum_0 = 0;
-  int sum_1 = 1;
+  int sum_1 = 0;
   int end_game = 0;
 
   // end condition : one of the player's board must be empty
@@ -123,7 +123,7 @@ int game(int plateau[NB_JOUEURS][NB_TROUS], int *grenier) {
     seeds = plateau[joueur][trou_selected - 1];
 
     while (trou_selected < 1 || trou_selected > 6 || seeds == 0) {
-      fprintf(stderr, "Trou invalide. Merci de rentrer une bonne valeur\n");
+      fprintf(stderr, "Trou invalide. Merci de rentrer une bonne valeur：\n");
       scanf("%d", &trou_selected);
       seeds = plateau[joueur][trou_selected - 1];
     }
@@ -156,3 +156,34 @@ int play_move(Game *g, int trou) {
 
       return 0;
   }
+
+void init_game(Game *g, int premier) {
+  for (int j = 0; j < NB_JOUEURS; j++) {
+    for (int t = 0; t < NB_TROUS; t++) {
+      g->plateau[j][t] = 4;
+    }
+    g->grenier[j] = 0;
+  }
+  g->joueur = premier;
+}
+
+/* Version "réseau" de show_plateau : écrit le plateau dans `out`
+ * au lieu de l'afficher. Utilisée par le serveur pour l'envoyer aux joueurs. */
+void board_to_string(const Game *g, char *out, size_t taille) {
+  size_t pos = 0;
+
+  pos += snprintf(out + pos, taille - pos, "\nJoueur 0 : | ");
+  for (int i = NB_TROUS - 1; i >= 0 && pos < taille; i--) {
+    pos += snprintf(out + pos, taille - pos, "%2d | ", g->plateau[0][i]);
+  }
+  if (pos < taille)
+    pos += snprintf(out + pos, taille - pos,
+                    "\n           ------------------------------\nJoueur 1 : | ");
+  for (int i = 0; i < NB_TROUS && pos < taille; i++) {
+    pos += snprintf(out + pos, taille - pos, "%2d | ", g->plateau[1][i]);
+  }
+  if (pos < taille)
+    snprintf(out + pos, taille - pos,
+             "\nGrenier : J0 = %d, J1 = %d\nTour du joueur %d\r\n",
+             g->grenier[0], g->grenier[1], g->joueur);
+}

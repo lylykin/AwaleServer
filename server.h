@@ -27,17 +27,28 @@ typedef struct in_addr IN_ADDR;
 
 #endif
 
+#include "game.h"
+
 #define CRLF        "\r\n"
 #define PORT         1977
 #define MAX_CLIENTS     100
+#define MAX_MATCHES     (MAX_CLIENTS / 2)
 
 #define BUF_SIZE    1024
 
 typedef struct{
     SOCKET sock;
-    char name[BUF_SIZE];
+    char name[MAX_NOM];
+    int match; //-1:pas de partie en cours;>=0:indice de la partie
+    int side;//0 ou 1 correspond à plateau[camp]
+    char pending[MAX_NOM];//qui m'envoie un défi
 } Client;
-
+typedef struct{
+    int actif;//match en cours:1 matchfini:0
+    Game g;
+    char noms[2][MAX_NOM];//sauvgarder les noms des joueurs
+}Match;
+Match matches[MAX_MATCHES];
 static void init(void);
 static void end(void);
 static void app(void);
@@ -51,4 +62,8 @@ static void clear_clients(Client *clients, int actual);
 static void send_list(Client *clients, int actual, SOCKET to);
 static int find_client(Client *clients, int actual, const char *name);
 static void send_challenge(Client *clients, int actual, Client sender, const char *buffer);
+static void send_response(Client *clients, int actual, Client sender, const char *buffer);
+static void start_match(Client *clients, int actual, int i, const char *buffer);
+static void handle_move(Client *clients, int actual, int i, int trou);
+static void handle_move(Client *clients,int actual,int i,int trou);
 #endif /* guard */

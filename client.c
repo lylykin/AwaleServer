@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "client.h"
-static char challenger[BUF_SIZE] = "";
+static char challenger[MAX_NOM] = "";
 static void init(void)
 {
 #ifdef WIN32
@@ -54,7 +54,11 @@ static void app(const char *address, const char *name)
       /* something from standard input : i.e keyboard */
       if(FD_ISSET(STDIN_FILENO, &rdfs))
       {
-         fgets(buffer, BUF_SIZE - 1, stdin);
+         if (fgets(buffer, BUF_SIZE - 1, stdin) == NULL)
+         {
+            /* EOF (Ctrl+D) : sinon buffer garde le dernier message reçu et on le renverrait en boucle */
+            break;
+         }
          {
             char *p = NULL;
             p = strstr(buffer, "\n");
@@ -68,7 +72,14 @@ static void app(const char *address, const char *name)
                buffer[BUF_SIZE - 1] = 0;
             }
          }
-         write_server(sock, buffer);
+         if (!repondre_challenge(sock, buffer)){
+            if (strncmp(buffer, "/challenge", strlen("/challenge")) == 0){
+               challenge_autre_client(sock, buffer);
+            }
+            else{
+               write_server(sock, buffer);
+            }
+         }
       }
       else if(FD_ISSET(sock, &rdfs))
       {
@@ -169,14 +180,7 @@ static  int repondre_challenge(SOCKET sock, char *buffer){
         else {
             return 0;
         }
-        if (!repondre_challenge(sock, buffer)){
-            if (strncmp(buffer, "/challenge", strlen("/challenge")) == 0){
-                challenge_autre_client(sock, buffer);
-            }
-            else{
-                write_server(sock, buffer);
-            }
-        }
+        write_server(sock, msg);
         challenger[0] = '\0';
         return 1;
 }

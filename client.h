@@ -31,6 +31,7 @@ typedef struct in_addr IN_ADDR;
 #define PORT     1977
 
 #define BUF_SIZE 1024
+#define MAX_NOM  32   /* même taille que côté serveur (game.h) */
 
 static void init(void);
 static void end(void);
