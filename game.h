@@ -38,3 +38,4 @@ void mettre_dans_grenier(int joueur, Position fin,
                          int plateau[NB_JOUEURS][NB_TROUS], int grenier[2]);
 
 int game(int plateau[NB_JOUEURS][NB_TROUS], int *grenier);
+void board_to_string(const Game *g, char *out, size_t taille);

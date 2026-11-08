@@ -1,22 +1,34 @@
 CC      = gcc
-CFLAGS  = -Wall -Wextra -std=c11
-LDFLAGS =
+# gnu11 (et pas c11) : server.h/client.h testent la macro `linux`,
+# qui n'est pas définie en mode C strict
+CFLAGS  = -Wall -Wextra -std=gnu11
 
-OBJS = main.o game.o
-TARGET = awale_game
+# version réseau (cible par défaut)
+all: server client
 
-all: $(TARGET)
+server: server.o game.o
+	$(CC) -o $@ $^
 
-$(TARGET): $(OBJS)
-	$(CC) $(LDFLAGS) -o $@ $^
+client: client.o
+	$(CC) -o $@ $^
 
-main.o: main.c game.h
-	$(CC) $(CFLAGS) -c main.c
+server.o: server.c server.h game.h
+	$(CC) $(CFLAGS) -c server.c
+
+client.o: client.c client.h
+	$(CC) $(CFLAGS) -c client.c
 
 game.o: game.c game.h
 	$(CC) $(CFLAGS) -c game.c
 
-clean:
-	rm -f $(OBJS) $(TARGET)
+# ancienne version locale (2 joueurs sur le même terminal) : make solo
+solo: main.o game.o
+	$(CC) -o awale_game $^
 
-.PHONY: all clean
+main.o: main.c game.h
+	$(CC) $(CFLAGS) -c main.c
+
+clean:
+	rm -f *.o server client awale_game
+
+.PHONY: all solo clean
