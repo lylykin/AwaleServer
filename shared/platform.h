@@ -1,5 +1,7 @@
-#ifndef CLIENT_H
-#define CLIENT_H
+#ifndef PLATFORM_H
+#define PLATFORM_H
+
+/* platform.h : abstraction des sockets (POSIX sur Linux, Winsock2 sur Windows) */
 
 #ifdef WIN32
 
@@ -27,15 +29,4 @@ typedef struct in_addr IN_ADDR;
 
 #endif
 
-#define CRLF     "\r\n"
-#define PORT     1977
-
-#define BUF_SIZE 4096
-#define MAX_NOM  32   /* même taille que côté serveur (game.h) */
-
-static void init(void);
-static void end(void);
-static void app(const char *address, const char *name);
-static int init_connection(const char *address);
-static void end_connection(int sock);
-#endif /* guard */
+#endif /* PLATFORM_H */

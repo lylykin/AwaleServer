@@ -1,30 +1,33 @@
 CC      = gcc
 # gnu11 (et pas c11) : server.h/client.h testent la macro `linux`,
 # qui n'est pas définie en mode C strict
-CFLAGS  = -Wall -Wextra -std=gnu11
+CFLAGS  = -Wall -Wextra -std=gnu11 -Ishared -Iserver -Iclient
 
-# version réseau (cible par défaut)
-all: server client
+SHARED_SRC = shared/decodeur.c shared/game.c shared/vec.c shared/cJSON.c
+SHARED_OBJ = $(SHARED_SRC:.c=.o)
 
-server: server.o game.o decodeur.o
+SERVER_SRC = server/server.c server/network.c server/client_manager.c \
+             server/match_manager.c server/handlers.c server/persistence.c
+SERVER_OBJ = $(SERVER_SRC:.c=.o)
+
+CLIENT_SRC = client/client.c
+CLIENT_OBJ = $(CLIENT_SRC:.c=.o)
+
+all: bin/server bin/client
+
+bin/server: $(SERVER_OBJ) $(SHARED_OBJ)
+	@mkdir -p bin
 	$(CC) -o $@ $^
 
-client: client.o decodeur.o
+bin/client: $(CLIENT_OBJ) shared/decodeur.o
+	@mkdir -p bin
 	$(CC) -o $@ $^
 
-server.o: server.c server.h game.h decodeur.h
-	$(CC) $(CFLAGS) -c server.c
-
-client.o: client.c client.h decodeur.h
-	$(CC) $(CFLAGS) -c client.c
-
-game.o: game.c game.h
-	$(CC) $(CFLAGS) -c game.c
-
-decodeur.o: decodeur.c decodeur.h
-	$(CC) $(CFLAGS) -c decodeur.c
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f *.o server client
+	rm -f $(SERVER_OBJ) $(CLIENT_OBJ) $(SHARED_OBJ)
+	rm -rf bin
 
 .PHONY: all clean

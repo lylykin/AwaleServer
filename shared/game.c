@@ -1,6 +1,11 @@
 #include "game.h"
 #include <stdio.h>
 
+/* Sème les graines dans le sens anti-horaire à partir de `trou_selected`.
+ * Le plateau est une boucle de 12 trous : après le trou 5 d'une rangée,
+ * on passe au trou 0 de l'autre rangée (c'est le `t == 6`). Le grenier
+ * est sauté pendant le semis — les captures sont gérées par
+ * mettre_dans_grenier(). Retourne le trou où la dernière graine est tombée. */
 Position repart_seed(int seeds, int trou_selected, int joueur,
                      int plateau[NB_JOUEURS][NB_TROUS]) {
   int t = trou_selected;
@@ -20,6 +25,11 @@ Position repart_seed(int seeds, int trou_selected, int joueur,
   return fin;
 }
 
+/* Règle de capture (Awale simplifié) : si la dernière graine atterrit
+ * chez l'adversaire (camp != joueur) et que ce trou contient 2 ou 3
+ * graines, le joueur les capture dans son grenier. fin.trou - 1 reconvertit
+ * le "trou suivant" en trou d'atterrissage réel. Ici on ne capture qu'un
+ * seul trou (pas de capture en chaîne) — simplification volontaire. */
 void mettre_dans_grenier(int joueur, Position fin, int plateau[NB_JOUEURS][NB_TROUS],
                          int grenier[2]) {
   int camp = fin.camp;
@@ -34,6 +44,8 @@ void mettre_dans_grenier(int joueur, Position fin, int plateau[NB_JOUEURS][NB_TR
   grenier[joueur] += capture;
 }
 
+/* La partie se termine quand une rangée est vide. Ici le gagnant est
+ * simplement celui qui a le plus de graines dans son grenier. */
 int end_game(int plateau[NB_JOUEURS][NB_TROUS]) {
   int sum_0 = 0;
   int sum_1 = 0;

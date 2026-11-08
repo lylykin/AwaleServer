@@ -44,23 +44,30 @@ void set_player_side(int side) {
     player_side = side;
 }
 
-// Client-side: handle a message from server
+// Client-side: handle a message from server.
+// content[] is only used for MSG_CHAT; every other message type reads
+// its dedicated union field.
 void handle_msg_server(int sock, Message msg) {
-    char buffer[BUF_SIZE];
+    (void)sock;
 
     switch (msg.type) {
         case MSG_CHAT:
             printf("%s\n", msg.content);
             break;
-            
+
         case MSG_LIST_RESPONSE:
-            printf("%s\n", msg.content);
+            printf("Joueurs en ligne (%d) :", msg.player_list.count);
+            for (int i = 0; i < msg.player_list.count; i++) {
+                printf(" %s", msg.player_list.names[i]);
+            }
+            printf("\n");
             break;
-            
+
         case MSG_SEND_CHALLENGE:
-            printf("%s vous defie ! Accepter ? (o/n)\n", msg.content);
+            printf("%s vous defie ! Accepter ? (o/n)\n",
+                   msg.challenge.challenger_name);
             break;
-            
+
         case MSG_ANSWER_CHALLENGE:
             if (msg.challenge.accepted) {
                 printf("%s a accepte votre defi !\n", msg.challenge.challenged_name);
@@ -68,14 +75,13 @@ void handle_msg_server(int sock, Message msg) {
                 printf("%s a refuse votre defi.\n", msg.challenge.challenged_name);
             }
             break;
-            
+
         case MSG_GAME_START:
-            printf("Partie demarree contre %s. Vous etes le joueur %d.\n", 
+            printf("Partie demarree contre %s. Vous etes le joueur %d.\n",
                    msg.challenge.challenged_name, msg.challenge.side);
             break;
-            
+
         case MSG_BOARD_UPDATE: {
-            // Own side at the bottom, opponent on top (default: side 1 bottom)
             int top = (player_side == 0) ? 1 : 0;
             int bottom = 1 - top;
             printf("Plateau :\n");
@@ -90,42 +96,61 @@ void handle_msg_server(int sock, Message msg) {
             printf("Tour du joueur : %d\n", msg.board.current_player);
             break;
         }
-            
+
         case MSG_YOUR_TURN:
             printf("A vous de jouer. Entrez un numero de trou (1-6) :\n");
             break;
-            
+
         case MSG_WAIT:
             printf("Attendez le coup de l'adversaire.\n");
             break;
-            
-        case MSG_GAME_OVER:
-            printf("Partie terminee : %s\n", msg.content);
+
+        case MSG_GAME_OVER: {
+            if (msg.game_over.winner == -1) {
+                printf("Match nul (%d - %d)\n",
+                       msg.game_over.score0, msg.game_over.score1);
+            } else {
+                printf("Gagnant : joueur %d (%d - %d)\n",
+                       msg.game_over.winner,
+                       msg.game_over.score0, msg.game_over.score1);
+            }
             break;
-            
+        }
+
         case MSG_MOVE_INVALID:
             printf("Coup invalide.\n");
             break;
-            
+
         case MSG_NOT_YOUR_TURN:
             printf("Ce n'est pas votre tour.\n");
             break;
-            
+
         case MSG_LIST_GAMES_RESPONSE:
-            printf("%s\n", msg.content);
+            printf("Parties en cours (%d) :\n", msg.game_list.count);
+            for (int i = 0; i < msg.game_list.count; i++) {
+                printf("  [%d] %s vs %s\n", i,
+                       msg.game_list.games[i].player1,
+                       msg.game_list.games[i].player2);
+            }
             break;
-            
+
         case MSG_GET_BIO_RESPONSE:
             printf("Bio du joueur :\n");
             for (int i = 0; i < msg.bio.line_count; i++) {
                 printf("  %s\n", msg.bio.bio_lines[i]);
             }
             break;
-            
+
         case MSG_SAVED_GAMES_RESPONSE:
-            printf("%s\n", msg.content);
+            printf("Parties sauvegardees (%d) :\n", msg.saved_games_list.count);
+            for (int i = 0; i < msg.saved_games_list.count; i++) {
+                SavedGameInfo *g = &msg.saved_games_list.games[i];
+                const char *result = (g->winner == -1) ? "Match nul"
+                                   : (g->winner == 0) ? g->noms[0] : g->noms[1];
+                printf("  %s vs %s - %s\n", g->noms[0], g->noms[1], result);
+            }
             break;
-            
+
         default:
             printf("Unknown message received (type: %d).\n", msg.type);
             break;
