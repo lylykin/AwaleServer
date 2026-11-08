@@ -6,29 +6,25 @@ CFLAGS  = -Wall -Wextra -std=gnu11
 # version réseau (cible par défaut)
 all: server client
 
-server: server.o game.o
+server: server.o game.o decodeur.o
 	$(CC) -o $@ $^
 
-client: client.o
+client: client.o decodeur.o
 	$(CC) -o $@ $^
 
-server.o: server.c server.h game.h
+server.o: server.c server.h game.h decodeur.h
 	$(CC) $(CFLAGS) -c server.c
 
-client.o: client.c client.h
+client.o: client.c client.h decodeur.h
 	$(CC) $(CFLAGS) -c client.c
 
 game.o: game.c game.h
 	$(CC) $(CFLAGS) -c game.c
 
-# ancienne version locale (2 joueurs sur le même terminal) : make solo
-solo: main.o game.o
-	$(CC) -o awale_game $^
-
-main.o: main.c game.h
-	$(CC) $(CFLAGS) -c main.c
+decodeur.o: decodeur.c decodeur.h
+	$(CC) $(CFLAGS) -c decodeur.c
 
 clean:
-	rm -f *.o server client awale_game
+	rm -f *.o server client
 
-.PHONY: all solo clean
+.PHONY: all clean

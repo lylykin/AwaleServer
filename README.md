@@ -19,9 +19,6 @@ Cela produit deux exécutables : `server` et `client`.
 | `make clean`  | supprime les fichiers compilés                               |
 | `make solo`   | compile l'ancienne version locale (`awale_game`, 2 joueurs sur le même terminal) |
 
-> **Sous Windows**, tapez d'abord `wsl` dans PowerShell : les exécutables sont
-> des programmes Linux et ne se lancent pas directement depuis PowerShell.
-
 ## 2. Lancement
 
 Ouvrez **trois terminaux** (sous Windows : trois terminaux, et `wsl` dans chacun),

@@ -30,7 +30,7 @@ typedef struct in_addr IN_ADDR;
 #define CRLF     "\r\n"
 #define PORT     1977
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 4096
 #define MAX_NOM  32   /* même taille que côté serveur (game.h) */
 
 static void init(void);
@@ -38,8 +38,4 @@ static void end(void);
 static void app(const char *address, const char *name);
 static int init_connection(const char *address);
 static void end_connection(int sock);
-static int read_server(SOCKET sock, char *buffer);
-static void write_server(SOCKET sock, const char *buffer);
-static void challenge_autre_client(SOCKET sock, char *buffer);
-static  int repondre_challenge(SOCKET sock, char *buffer);
 #endif /* guard */

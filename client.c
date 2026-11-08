@@ -4,7 +4,10 @@
 #include <string.h>
 
 #include "client.h"
+#include "decodeur.h"
+
 static char challenger[MAX_NOM] = "";
+
 static void init(void)
 {
 #ifdef WIN32
@@ -28,21 +31,38 @@ static void end(void)
 static void app(const char *address, const char *name)
 {
    SOCKET sock = init_connection(address);
+   printf("==========================\nBienvenue %s ! \n\n", name);
+   printf("Commandes disponibles :\n");
+   printf("  /list - afficher les joueurs en ligne\n");
+   printf("  /challenge <joueur> - defier un joueur\n");
+   printf("  /games - lister les parties en cours\n");
+   printf("  /observe <index> - observer une partie\n");
+   printf("  /stopobserve - arreter d'observer\n");
+   printf("  /bio - definir votre bio\n");
+   printf("  /bio <joueur> - voir la bio d'un joueur\n");
+   printf("  /friend add <joueur> - ajouter un ami\n");
+   printf("  /friend remove <joueur> - retirer un ami\n");
+   printf("  /private on - activer le mode prive\n");
+   printf("  /private off - desactiver le mode prive\n");
+   printf("  /saved - lister les parties sauvegardees\n");
+   printf("\nEn partie : entrez un nombre (1-6) ou /move <1-6> pour jouer un coup\n");
    char buffer[BUF_SIZE];
 
    fd_set rdfs;
+   
+   int in_game = 0; // 0: not in game, 1: in game
 
-   /* send our name */
-   write_server(sock, name);
+   // Send connection message with name
+   Message msg;
+   msg.type = MSG_CONNECT;
+   strncpy(msg.content, name, BUF_SIZE - 1);
+   msg.content[BUF_SIZE - 1] = '\0';
+   send_server(msg, sock);
 
    while(1)
    {
       FD_ZERO(&rdfs);
-
-      /* add STDIN_FILENO */
       FD_SET(STDIN_FILENO, &rdfs);
-
-      /* add the socket */
       FD_SET(sock, &rdfs);
 
       if(select(sock + 1, &rdfs, NULL, NULL, NULL) == -1)
@@ -51,53 +71,195 @@ static void app(const char *address, const char *name)
          exit(errno);
       }
 
-      /* something from standard input : i.e keyboard */
       if(FD_ISSET(STDIN_FILENO, &rdfs))
       {
          if (fgets(buffer, BUF_SIZE - 1, stdin) == NULL)
          {
-            /* EOF (Ctrl+D) : sinon buffer garde le dernier message reçu et on le renverrait en boucle */
             break;
          }
+         char *p = strstr(buffer, "\n");
+         if(p != NULL)
          {
-            char *p = NULL;
-            p = strstr(buffer, "\n");
-            if(p != NULL)
+            *p = 0;
+         }
+         else
+         {
+            buffer[BUF_SIZE - 1] = 0;
+         }
+         
+         // Handle challenge response
+         if (challenger[0] != '\0' && (strcmp(buffer, "o") == 0 || strcmp(buffer, "n") == 0)) {
+            msg.type = MSG_ANSWER_CHALLENGE;
+            msg.challenge.accepted = (strcmp(buffer, "o") == 0) ? 1 : 0;
+            strncpy(msg.challenge.challenger_name, challenger, MAX_NOM - 1);
+            msg.challenge.challenger_name[MAX_NOM - 1] = '\0';
+            strncpy(msg.challenge.challenged_name, name, MAX_NOM - 1);
+            msg.challenge.challenged_name[MAX_NOM - 1] = '\0';
+            send_server(msg, sock);
+            challenger[0] = '\0';
+         }
+         else if (strncmp(buffer, "/challenge ", strlen("/challenge ")) == 0)
+         {
+            const char *adversaire = buffer + strlen("/challenge ");
+            if (*adversaire == '\0')
             {
-               *p = 0;
+               printf("Utilisation : /challenge <joueur>\n");
             }
             else
             {
-               /* fclean */
-               buffer[BUF_SIZE - 1] = 0;
+               msg.type = MSG_SEND_CHALLENGE;
+               strncpy(msg.content, adversaire, BUF_SIZE - 1);
+               msg.content[BUF_SIZE - 1] = '\0';
+               send_server(msg, sock);
             }
          }
-         if (!repondre_challenge(sock, buffer)){
-            if (strncmp(buffer, "/challenge", strlen("/challenge")) == 0){
-               challenge_autre_client(sock, buffer);
+         else if (strcmp(buffer, "/list") == 0)
+         {
+            msg.type = MSG_LIST_REQUEST;
+            send_server(msg, sock);
+         }
+         else if (strcmp(buffer, "/games") == 0)
+         {
+            msg.type = MSG_LIST_GAMES_REQUEST;
+            send_server(msg, sock);
+         }
+         else if (strncmp(buffer, "/observe ", strlen("/observe ")) == 0)
+         {
+            const char *game_str = buffer + strlen("/observe ");
+            int game_idx = atoi(game_str);
+            msg.type = MSG_OBSERVE_GAME;
+            msg.game_info_msg.game_index = game_idx;
+            send_server(msg, sock);
+         }
+         else if (strcmp(buffer, "/stopobserve") == 0)
+         {
+            msg.type = MSG_STOP_OBSERVE;
+            send_server(msg, sock);
+         }
+         else if (strcmp(buffer, "/bio") == 0)
+         {
+            printf("Entrez votre bio (max 10 lignes, ligne vide pour terminer) :\n");
+            Message bio_msg;
+            bio_msg.type = MSG_SET_BIO;
+            bio_msg.bio.line_count = 0;
+            for (int j = 0; j < 10; j++) {
+                if (fgets(buffer, BUF_SIZE - 1, stdin) == NULL) break;
+                p = strstr(buffer, "\n");
+                if (p) *p = 0;
+                if (buffer[0] == '\0') break;
+                strncpy(bio_msg.bio.bio_lines[j], buffer, 255);
+                bio_msg.bio.bio_lines[j][255] = '\0';
+                bio_msg.bio.line_count++;
             }
-            else{
-               write_server(sock, buffer);
+            send_server(bio_msg, sock);
+         }
+         else if (strncmp(buffer, "/bio ", strlen("/bio ")) == 0)
+         {
+            const char *player = buffer + strlen("/bio ");
+            msg.type = MSG_GET_BIO_REQUEST;
+            strncpy(msg.content, player, BUF_SIZE - 1);
+            msg.content[BUF_SIZE - 1] = '\0';
+            send_server(msg, sock);
+         }
+         else if (strncmp(buffer, "/friend add ", strlen("/friend add ")) == 0)
+         {
+            const char *friend_name = buffer + strlen("/friend add ");
+            msg.type = MSG_ADD_FRIEND;
+            strncpy(msg.friend_op.friend_name, friend_name, MAX_NOM - 1);
+            msg.friend_op.friend_name[MAX_NOM - 1] = '\0';
+            send_server(msg, sock);
+         }
+         else if (strncmp(buffer, "/friend remove ", strlen("/friend remove ")) == 0)
+         {
+            const char *friend_name = buffer + strlen("/friend remove ");
+            msg.type = MSG_REMOVE_FRIEND;
+            strncpy(msg.friend_op.friend_name, friend_name, MAX_NOM - 1);
+            msg.friend_op.friend_name[MAX_NOM - 1] = '\0';
+            send_server(msg, sock);
+         }
+         else if (strcmp(buffer, "/private on") == 0)
+         {
+            msg.type = MSG_SET_PRIVATE_MODE;
+            msg.privacy.private_mode = 1;
+            send_server(msg, sock);
+         }
+         else if (strcmp(buffer, "/private off") == 0)
+         {
+            msg.type = MSG_SET_PRIVATE_MODE;
+            msg.privacy.private_mode = 0;
+            send_server(msg, sock);
+         }
+         else if (strncmp(buffer, "/move ", strlen("/move ")) == 0)
+         {
+            // Handle /move <number> command
+            const char *move_str = buffer + strlen("/move ");
+            char *endptr;
+            long num = strtol(move_str, &endptr, 10);
+            if (endptr == move_str + strlen(move_str) && num >= 1 && num <= 6) {
+                msg.type = MSG_PLAY_TURN;
+                msg.trou_selected = (int)num;
+                send_server(msg, sock);
+            } else {
+                msg.type = MSG_CHAT;
+                strncpy(msg.content, buffer, BUF_SIZE - 1);
+                msg.content[BUF_SIZE - 1] = '\0';
+                send_server(msg, sock);
+            }
+         }
+         else if (strcmp(buffer, "/saved") == 0)
+         {
+            msg.type = MSG_SAVED_GAMES_REQUEST;
+            send_server(msg, sock);
+         }
+         else
+         {
+            // Check if it's a bare number (move command) and we're in a game
+            if (in_game) {
+                // Check if buffer is a valid number between 1 and 6
+                char *endptr;
+                long num = strtol(buffer, &endptr, 10);
+                if (endptr == buffer + strlen(buffer) && num >= 1 && num <= 6) {
+                    // It's a valid move number
+                    msg.type = MSG_PLAY_TURN;
+                    msg.trou_selected = (int)num;
+                    send_server(msg, sock);
+                } else {
+                    // Otherwise, treat as chat message
+                    msg.type = MSG_CHAT;
+                    strncpy(msg.content, buffer, BUF_SIZE - 1);
+                    msg.content[BUF_SIZE - 1] = '\0';
+                    send_server(msg, sock);
+                }
+            } else {
+                // Not in game, treat as chat message
+                msg.type = MSG_CHAT;
+                strncpy(msg.content, buffer, BUF_SIZE - 1);
+                msg.content[BUF_SIZE - 1] = '\0';
+                send_server(msg, sock);
             }
          }
       }
       else if(FD_ISSET(sock, &rdfs))
       {
-         int n = read_server(sock, buffer);
-         /* server down */
-         if(n == 0)
+         Message received_msg = msg_from_server(sock);
+         
+         if(received_msg.type == -1)
          {
-            printf("Server disconnected !\n");
+            printf("Server disconnected!\n");
             break;
          }
-         if (strncmp(buffer, "CHALLENGE_FROM ", strlen("CHALLENGE_FROM ")) == 0)
-         {
-            snprintf(challenger, sizeof challenger, "%s", buffer + strlen("CHALLENGE_FROM "));
-            printf("%s vous défie ! Accepter ? (o/n)\n", challenger);
+         
+         handle_msg_server(sock, received_msg);
+         
+         // Track game state
+         if (received_msg.type == MSG_GAME_START) {
+            in_game = 1;
+         } else if (received_msg.type == MSG_GAME_OVER) {
+            in_game = 0;
          }
-         else
-         {
-            puts(buffer);
+         
+         if (received_msg.type == MSG_SEND_CHALLENGE) {
+            snprintf(challenger, sizeof challenger, "%s", received_msg.content);
          }
       }
    }
@@ -142,69 +304,16 @@ static void end_connection(int sock)
    closesocket(sock);
 }
 
-static int read_server(SOCKET sock, char *buffer)
-{
-   int n = 0;
-
-   if((n = recv(sock, buffer, BUF_SIZE - 1, 0)) < 0)
-   {
-      perror("recv()");
-      exit(errno);
-   }
-
-   buffer[n] = 0;
-
-   return n;
-}
-static void challenge_autre_client(SOCKET sock, char *buffer){
-     char msg[BUF_SIZE];
-     const char *adversaire = buffer + strlen("/challenge ");
-     if (*adversaire == '\0'){
-         printf("Usage: /challenge <pseudo>\n");
-         return;
-     }
-     snprintf(msg, sizeof msg, "CHALLENGE %s", adversaire);
-     write_server(sock, msg);
-}
-static  int repondre_challenge(SOCKET sock, char *buffer){
-        char msg[BUF_SIZE];
-        if (challenger[0] == '\0'){
-            return 0;
-        }
-        else if (strcmp(buffer, "o") == 0){
-            snprintf(msg, sizeof msg, "ACCEPT %s", challenger);
-        }
-        else if (strcmp(buffer,"n") == 0){
-            snprintf(msg, sizeof msg, "REFUSE %s", challenger);
-        }
-        else {
-            return 0;
-        }
-        write_server(sock, msg);
-        challenger[0] = '\0';
-        return 1;
-}
-static void write_server(SOCKET sock, const char *buffer)
-{
-   if(send(sock, buffer, strlen(buffer), 0) < 0)
-   {
-      perror("send()");
-      exit(errno);
-   }
-}
-
 int main(int argc, char **argv)
 {
    if(argc < 2)
    {
-      printf("Usage : %s [address] [pseudo]\n", argv[0]);
+      printf("Utilisation : %s [adresse] [pseudo]\n", argv[0]);
       return EXIT_FAILURE;
    }
 
    init();
-
    app(argv[1], argv[2]);
-
    end();
 
    return EXIT_SUCCESS;
