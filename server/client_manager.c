@@ -3,18 +3,17 @@
 #include <string.h>
 
 #include "client_manager.h"
-#include "match_manager.h"        /* matches global               */
-#include "persistence.h"          /* save_persistence_data          */
+#include "match_manager.h"
+#include "persistence.h"
 
-/* Magasin persistant des identités - partagé avec la couche JSON. */
 PlayerPtrVec players;
 
 Client *find_client(ClientPtrVec *clients, const char *name)
+// chercher un client dans la liste des données persistées
 {
     for (int i = 0; i < clients->length; i++) {
         Client *c = clients->data[i];
-        if (c->active && c->player &&
-            strcmp(c->player->name, name) == 0) {
+        if (c->active && c->player && strcmp(c->player->name, name) == 0) {
             return c;
         }
     }
@@ -35,10 +34,10 @@ void remove_client(ClientPtrVec *clients, Client *to_remove)
        disconnected_name[0] = '\0';
    }
 
-   /* Sauvegarde l'état (match si en cours). */
+   /* Sauvegarde l'état (si partie en cours). */
    save_persistence_data(&players, &matches);
 
-   /* Retire le client de toutes les listes d'observateurs. */
+   // Retire le client de toutes les listes d'observateurs.
    for (int i = 0; i < matches.length; i++) {
        int idx;
        vec_find(&matches.data[i].observers, to_remove, idx);
@@ -47,14 +46,13 @@ void remove_client(ClientPtrVec *clients, Client *to_remove)
        }
    }
 
-   /* Si le client était en partie, on la garde vivante pour reconnexion. */
+   // Si le client était en partie, on la garde en mémoire pour la prochaine connexion.
    if (was_in_match >= 0 && was_in_match < matches.length) {
        Match *m = &matches.data[was_in_match];
 
        for (int ci = 0; ci < clients->length; ci++) {
            Client *c = clients->data[ci];
-           if (c->active && c != to_remove && c->player &&
-               c->player->match == was_in_match) {
+           if (c->active && c != to_remove && c->player && c->player->match == was_in_match) {
                Message msg;
                msg.type = MSG_CHAT;
                snprintf(msg.content, BUF_SIZE - 1,
@@ -93,7 +91,7 @@ void remove_client(ClientPtrVec *clients, Client *to_remove)
        }
    }
 
-   /* Retire du vec et libère. */
+   //Retire du vec et libère.
    int idx;
    vec_find(clients, to_remove, idx);
    if (idx != -1) {
@@ -104,6 +102,7 @@ void remove_client(ClientPtrVec *clients, Client *to_remove)
 }
 
 void clear_clients(ClientPtrVec *clients)
+// fermeture propre des connexions socket
 {
    for (int i = 0; i < clients->length; i++) {
       Client *c = clients->data[i];
@@ -114,8 +113,8 @@ void clear_clients(ClientPtrVec *clients)
    save_persistence_data(&players, &matches);
 }
 
-void send_message_to_all_clients(ClientPtrVec *clients, Client *sender,
-                                 const char *buffer, char from_server)
+void send_message_to_all_clients(ClientPtrVec *clients, Client *sender, const char *buffer, char from_server)
+//Envoie un message chat à tous les clients actifs sauf l'expéditeur.
 {
    for (int i = 0; i < clients->length; i++) {
       Client *c = clients->data[i];
@@ -137,6 +136,7 @@ void send_message_to_all_clients(ClientPtrVec *clients, Client *sender,
 }
 
 void send_list(ClientPtrVec *clients, SOCKET to)
+/* Envoie la liste des joueurs en ligne dans un champ structuré. */
 {
     Message msg;
     msg.type = MSG_LIST_RESPONSE;
