@@ -13,8 +13,7 @@
 
 #define CRLF        "\r\n"
 #define PORT         1977
-#define MAX_CLIENTS     100         /* cap for players[] persistent array   */
-#define MAX_MATCHES     (MAX_CLIENTS / 2)
+#define MAX_CLIENTS     100         /* soft cap for connected players + listen backlog */
 #define MAX_FRIENDS     20          /* soft cap for friend list             */
 #define MAX_BIO_LINES   10          /* soft cap for bio lines               */
 #define MAX_BIO_LENGTH  256
@@ -50,9 +49,11 @@ typedef struct {
     Bio bio;
     FriendVec friends;
     int private_mode; /* 0: public, 1: privé */
-    int match;        /* -1: pas en partie, >=0: index dans matches[] */
+    int match;        /* -1: pas en partie, >=0: index dans le vec matches */
     int side;         /* 0 ou 1 : côté du plateau joué par ce joueur  */
 } ClientPlayer;
+
+typedef vec_t(ClientPlayer*) PlayerPtrVec;  /* magasin persistant des identités */
 
 typedef struct Client {
     SOCKET sock;
@@ -69,5 +70,7 @@ typedef struct {
     ClientPtrVec observers; /* observateurs connectés */
     int saved;
 } Match;
+
+typedef vec_t(Match) MatchVec;
 
 #endif /* TYPES_H */

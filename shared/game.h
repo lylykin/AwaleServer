@@ -14,8 +14,8 @@ typedef struct {
   int joueur;
 } Game;
 
-void init_game(Game *g, int premier);
-int play_move(Game *g, int trou);
+void init_game(Game *game, int premier);
+int play_move(Game *game, int trou);
 
 int end_game(int plateau[NB_JOUEURS][NB_TROUS]);
 
@@ -25,4 +25,9 @@ Position repart_seed(int seeds, int trou_selected, int joueur,
 void mettre_dans_grenier(int joueur, Position fin,
                          int plateau[NB_JOUEURS][NB_TROUS], int grenier[2]);
 
-void board_to_string(const Game *g, char *out, size_t taille);
+/* Affiche le plateau du point de vue du joueur local (viewer_side) :
+ * sa rangée en bas, celle de l'adversaire en haut (inversée), grenier à
+ * droite. En haut : qui a joué. En bas : de qui est le tour.
+ * viewer_side = -1 : vue par défaut (game->joueur). */
+void print_board(const Game *game, int viewer_side,
+                 const char *name0, const char *name1);

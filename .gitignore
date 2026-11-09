@@ -1,5 +1,5 @@
-server
-client
+bin/server
+bin/client
 awale_game
 a.out
 *.o

@@ -8,6 +8,7 @@
 
 // Message types
 typedef enum {
+    MSG_ERROR = -1,
     MSG_PLAY_TURN,
     MSG_CONNECT,
     MSG_SEND_CHALLENGE,
@@ -39,7 +40,7 @@ typedef enum {
 } MsgType;
 
 /* A single saved-game entry as sent over the wire (names + winner only,
- * not the full board — the client only needs the summary). */
+ * not the full board - the client only needs the summary). */
 typedef struct {
     char noms[2][MAX_NOM];
     int winner; /* -1: draw, 0 or 1: index of winner */
@@ -51,7 +52,7 @@ typedef struct {
     char player2[MAX_NOM];
 } GameInfoMsg;
 
-// Message structure — content[] is only for MSG_CHAT (free text).
+// Message structure - content[] is only for MSG_CHAT (free text).
 // All other message types use their dedicated union field.
 typedef struct {
     MsgType type;
@@ -108,3 +109,4 @@ int send_client(Message msg, int sock);
 Message msg_from_server(int socket);
 void handle_msg_server(int sock, Message msg);
 void set_player_side(int side);
+void set_game_names(const char *my_name, int my_side, const char *opp_name);

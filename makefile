@@ -19,7 +19,7 @@ bin/server: $(SERVER_OBJ) $(SHARED_OBJ)
 	@mkdir -p bin
 	$(CC) -o $@ $^
 
-bin/client: $(CLIENT_OBJ) shared/decodeur.o
+bin/client: $(CLIENT_OBJ) shared/decodeur.o shared/game.o
 	@mkdir -p bin
 	$(CC) -o $@ $^
 

@@ -1,4 +1,76 @@
 {
-	"clients":	[],
-	"matches":	[]
+	"clients":	[{
+			"name":	"Jiayi",
+			"bio":	{
+				"lines":	[]
+			},
+			"friends":	[],
+			"private_mode":	0,
+			"match":	0,
+			"side":	0
+		}, {
+			"name":	"Cl",
+			"bio":	{
+				"lines":	[]
+			},
+			"friends":	[],
+			"private_mode":	0,
+			"match":	0,
+			"side":	1
+		}, {
+			"name":	"A",
+			"bio":	{
+				"lines":	[]
+			},
+			"friends":	[],
+			"private_mode":	0,
+			"match":	1,
+			"side":	0
+		}, {
+			"name":	"C",
+			"bio":	{
+				"lines":	[]
+			},
+			"friends":	[],
+			"private_mode":	0,
+			"match":	1,
+			"side":	1
+		}, {
+			"name":	"A1",
+			"bio":	{
+				"lines":	[]
+			},
+			"friends":	[],
+			"private_mode":	0,
+			"match":	1,
+			"side":	0
+		}, {
+			"name":	"A2",
+			"bio":	{
+				"lines":	[]
+			},
+			"friends":	[],
+			"private_mode":	0,
+			"match":	1,
+			"side":	1
+		}],
+	"matches":	[{
+			"active":	1,
+			"player_names":	["Cl", "Jiayi"],
+			"side_of":	[1, 0],
+			"game":	{
+				"plateau":	[[5, 0, 5, 5, 1, 6], [0, 0, 7, 6, 6, 5]],
+				"grenier":	[2, 0],
+				"joueur":	1
+			}
+		}, {
+			"active":	1,
+			"player_names":	["A2", "A1"],
+			"side_of":	[1, 0],
+			"game":	{
+				"plateau":	[[3, 9, 1, 3, 0, 7], [2, 2, 1, 1, 9, 8]],
+				"grenier":	[2, 0],
+				"joueur":	1
+			}
+		}]
 }

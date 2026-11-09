@@ -1,4 +1,5 @@
 #include "decodeur.h"
+#include "game.h"
 #include <sys/socket.h>
 #include <string.h>
 #include <stdio.h>
@@ -29,9 +30,9 @@ Message msg_from_server(int socket) {
     int n = recv(socket, &msg, sizeof(msg), 0);
     if (n < 0) {
         perror("recv()");
-        msg.type = -1; // error
+        msg.type = MSG_ERROR;
     } else if (n == 0) {
-        msg.type = -1; // connection closed
+        msg.type = MSG_ERROR; // connection closed
     }
     return msg;
 }
@@ -40,8 +41,20 @@ Message msg_from_server(int socket) {
 // the player's own row at the bottom. -1 = not in a game (default view).
 static int player_side = -1;
 
+// Noms des joueurs par side (0/1), pour l'affichage du plateau.
+static char name_of_side[2][MAX_NOM] = {"", ""};
+
 void set_player_side(int side) {
     player_side = side;
+}
+
+void set_game_names(const char *my_name, int my_side, const char *opp_name) {
+    const char *s0 = (my_side == 0) ? my_name : opp_name;
+    const char *s1 = (my_side == 1) ? my_name : opp_name;
+    strncpy(name_of_side[0], s0, MAX_NOM - 1);
+    name_of_side[0][MAX_NOM - 1] = '\0';
+    strncpy(name_of_side[1], s1, MAX_NOM - 1);
+    name_of_side[1][MAX_NOM - 1] = '\0';
 }
 
 // Client-side: handle a message from server.
@@ -82,18 +95,13 @@ void handle_msg_server(int sock, Message msg) {
             break;
 
         case MSG_BOARD_UPDATE: {
-            int top = (player_side == 0) ? 1 : 0;
-            int bottom = 1 - top;
-            printf("Plateau :\n");
-            printf("  %2d %2d %2d %2d %2d %2d | %2d\n",
-                   msg.board.board[top][0], msg.board.board[top][1], msg.board.board[top][2],
-                   msg.board.board[top][3], msg.board.board[top][4], msg.board.board[top][5],
-                   msg.board.grenier[top]);
-            printf("  %2d %2d %2d %2d %2d %2d | %2d\n",
-                   msg.board.board[bottom][0], msg.board.board[bottom][1], msg.board.board[bottom][2],
-                   msg.board.board[bottom][3], msg.board.board[bottom][4], msg.board.board[bottom][5],
-                   msg.board.grenier[bottom]);
-            printf("Tour du joueur : %d\n", msg.board.current_player);
+            /* Construit un Game depuis le message et l'affiche du point
+             * de vue du joueur local (sa rangée en bas). */
+            Game game;
+            memcpy(game.plateau, msg.board.board, sizeof(game.plateau));
+            memcpy(game.grenier, msg.board.grenier, sizeof(game.grenier));
+            game.joueur = msg.board.current_player;
+            print_board(&game, player_side, name_of_side[0], name_of_side[1]);
             break;
         }
 
