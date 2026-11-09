@@ -61,29 +61,144 @@ static void handle_get_bio(ClientPtrVec *clients, Client *client, const char *ta
     send_client(resp, client->sock);
 }
 
-/* Amis */
 
-static void handle_add_friend(Client *client, const char *friend_name) {
-    Message resp;
-    ClientPlayer *p = client->player;
-    if (p->friends.length >= MAX_FRIENDS) {
-        resp.type = MSG_CHAT;
-        strncpy(resp.content, "Nombre maximum d'amis atteint.", BUF_SIZE - 1);
-        resp.content[BUF_SIZE - 1] = '\0';
-        send_client(resp, client->sock);
-        return;
-    }
+/* Amis : /friend add envoie une demande ; l'ajout n'est effectif que
+ * lorsque l'autre joueur accepte (ajout mutuel dans les deux listes). */
+
+static int is_friend_of(const ClientPlayer *target, const char *name);
+
+static void add_friend_to_player(ClientPlayer *p, const char *friend_name) {
     FriendName fname;
     strncpy(fname.value, friend_name, MAX_NOM - 1);
     fname.value[MAX_NOM - 1] = '\0';
     vec_push(&p->friends, fname);
-
-    resp.type = MSG_CHAT;
-    snprintf(resp.content, BUF_SIZE - 1, "%s ajoute aux amis.", friend_name);
-    send_client(resp, client->sock);
-    save_persistence_data(&players, &matches);
 }
 
+static void remove_friend_from_player(ClientPlayer *p, const char *friend_name) {
+    for (int j = 0; j < p->friends.length; j++) {
+        if (strcmp(p->friends.data[j].value, friend_name) == 0) {
+            vec_swapsplice(&p->friends, j, 1);
+            return;
+        }
+    }
+}
+
+static void handle_add_friend(ClientPtrVec *clients, Client *client, const char *friend_name) {
+    Message resp;
+    ClientPlayer *p = client->player;
+
+    if (strcmp(friend_name, p->name) == 0) {
+        resp.type = MSG_CHAT;
+        strncpy(resp.content, "Vous ne pouvez pas vous ajouter vous-meme.", BUF_SIZE - 1);
+        resp.content[BUF_SIZE - 1] = '\0';
+        send_client(resp, client->sock);
+        return;
+    }
+    if (is_friend_of(p, friend_name)) {
+        resp.type = MSG_CHAT;
+        snprintf(resp.content, BUF_SIZE - 1, "%s est deja dans votre liste d'amis.", friend_name);
+        send_client(resp, client->sock);
+        return;
+    }
+
+    Client *target = find_client(clients, friend_name);
+    if (!target) {
+        resp.type = MSG_CHAT;
+        snprintf(resp.content, BUF_SIZE - 1,
+                 "Joueur %s introuvable (il doit etre en ligne pour recevoir la demande).",
+                 friend_name);
+        send_client(resp, client->sock);
+        return;
+    }
+
+    strncpy(target->pending_friend, p->name, MAX_NOM - 1);
+    target->pending_friend[MAX_NOM - 1] = '\0';
+
+    // envoi d'une demande d'ami
+    resp.type = MSG_FRIEND_REQUEST;
+    resp.friend_request.accepted = 0;
+    strncpy(resp.friend_request.requester_name, p->name, MAX_NOM - 1);
+    resp.friend_request.requester_name[MAX_NOM - 1] = '\0';
+    strncpy(resp.friend_request.target_name, friend_name, MAX_NOM - 1);
+    resp.friend_request.target_name[MAX_NOM - 1] = '\0';
+    send_client(resp, target->sock);
+
+    resp.type = MSG_CHAT;
+    snprintf(resp.content, BUF_SIZE - 1, "Demande d'ami envoyee a %s.", friend_name);
+    send_client(resp, client->sock);
+}
+
+static void handle_answer_friend_request(ClientPtrVec *clients, Client *client, const Message *msg) {
+    Message resp;
+    char requester_name[MAX_NOM];
+    strncpy(requester_name, client->pending_friend, MAX_NOM - 1);
+    requester_name[MAX_NOM - 1] = '\0';
+
+    if (requester_name[0] == '\0') return;
+    client->pending_friend[0] = '\0';
+
+    Client *requester = find_client(clients, requester_name);
+    if (!requester) {
+        resp.type = MSG_CHAT;
+        snprintf(resp.content, BUF_SIZE - 1, "Joueur %s n'est plus en ligne.", requester_name);
+        send_client(resp, client->sock);
+        return;
+    }
+
+    if (msg->friend_request.accepted) {
+        ClientPlayer *answerer = client->player;
+        ClientPlayer *req = requester->player;
+        if (req->friends.length >= MAX_FRIENDS || answerer->friends.length >= MAX_FRIENDS) {
+            resp.type = MSG_CHAT;
+            strncpy(resp.content, "Nombre maximum d'amis atteint.", BUF_SIZE - 1);
+            resp.content[BUF_SIZE - 1] = '\0';
+            send_client(resp, client->sock);
+            resp.type = MSG_CHAT;
+            snprintf(resp.content, BUF_SIZE - 1,
+                     "%s a atteint le nombre maximum d'amis.", answerer->name);
+            send_client(resp, requester->sock);
+            return;
+        }
+        if (!is_friend_of(req, answerer->name)) {
+            add_friend_to_player(req, answerer->name);
+        }
+        if (!is_friend_of(answerer, req->name)) {
+            add_friend_to_player(answerer, req->name);
+        }
+
+        resp.type = MSG_ANSWER_FRIEND_REQUEST;
+        resp.friend_request.accepted = 1;
+        strncpy(resp.friend_request.requester_name, req->name, MAX_NOM - 1);
+        resp.friend_request.requester_name[MAX_NOM - 1] = '\0';
+        strncpy(resp.friend_request.target_name, answerer->name, MAX_NOM - 1);
+        resp.friend_request.target_name[MAX_NOM - 1] = '\0';
+        send_client(resp, requester->sock);
+
+        resp.type = MSG_CHAT;
+        snprintf(resp.content, BUF_SIZE - 1, "%s a accepte votre demande d'ami.", answerer->name);
+        send_client(resp, requester->sock);
+
+        resp.type = MSG_CHAT;
+        snprintf(resp.content, BUF_SIZE - 1, "%s ajoute aux amis.", req->name);
+        send_client(resp, client->sock);
+
+        save_persistence_data(&players, &matches);
+    } else {
+        resp.type = MSG_ANSWER_FRIEND_REQUEST;
+        resp.friend_request.accepted = 0;
+        strncpy(resp.friend_request.requester_name, requester_name, MAX_NOM - 1);
+        resp.friend_request.requester_name[MAX_NOM - 1] = '\0';
+        strncpy(resp.friend_request.target_name, client->player->name, MAX_NOM - 1);
+        resp.friend_request.target_name[MAX_NOM - 1] = '\0';
+        send_client(resp, requester->sock);
+
+        resp.type = MSG_CHAT;
+        snprintf(resp.content, BUF_SIZE - 1, "%s a refuse votre demande d'ami.", client->player->name);
+        send_client(resp, requester->sock);
+    }
+}
+
+// manque l'enlèvement de l'ami de l'autre coté
 static void handle_remove_friend(Client *client, const char *friend_name) {
     Message resp;
     ClientPlayer *p = client->player;
@@ -97,6 +212,11 @@ static void handle_remove_friend(Client *client, const char *friend_name) {
 
     if (idx != -1) {
         vec_swapsplice(&p->friends, idx, 1);
+        // Retire aussi le client ayant demandé la suppresion de la liste de l'autre client
+        ClientPlayer *other = find_persistent_player(&players, friend_name);
+        if (other) {
+            remove_friend_from_player(other, p->name);
+        }
         resp.type = MSG_CHAT;
         snprintf(resp.content, BUF_SIZE - 1, "%s retire des amis.", friend_name);
     } else {
@@ -346,11 +466,15 @@ void handle_message(ClientPtrVec *clients, Client *client, Message msg)
             break;
 
         case MSG_ADD_FRIEND:
-            handle_add_friend(client, msg.friend_op.friend_name);
+            handle_add_friend(clients, client, msg.friend_op.friend_name);
             break;
 
         case MSG_REMOVE_FRIEND:
             handle_remove_friend(client, msg.friend_op.friend_name);
+            break;
+
+        case MSG_ANSWER_FRIEND_REQUEST:
+            handle_answer_friend_request(clients, client, &msg);
             break;
 
         case MSG_SET_PRIVATE_MODE:

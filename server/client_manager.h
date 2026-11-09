@@ -16,8 +16,7 @@ extern PlayerPtrVec players;
 /* Cherche un client actif par nom. Retourne le Client* ou NULL. */
 Client *find_client(ClientPtrVec *clients, const char *name);
 
-/* Déconnecte un client : sauvegarde, nettoie observateurs et parties,
- * puis retire le Client du vec et le libère. */
+
 void remove_client(ClientPtrVec *clients, Client *to_remove);
 
 void clear_clients(ClientPtrVec *clients);
