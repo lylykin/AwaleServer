@@ -75,7 +75,9 @@ void remove_client(ClientPtrVec *clients, Client *to_remove)
            }
        }
 
-       /* Ferme le match seulement si plus aucun joueur n'est connecté. */
+       /* La partie reste active : les joueurs restent marqués "en partie"
+        * (player->match inchangé) et peuvent se reconnecter. Elle est
+        * simplement en pause tant qu'aucun des deux n'est connecté. */
        int someone_left = 0;
        for (int ci = 0; ci < clients->length; ci++) {
            Client *c = clients->data[ci];
@@ -85,10 +87,7 @@ void remove_client(ClientPtrVec *clients, Client *to_remove)
                break;
            }
        }
-       if (!someone_left) {
-           m->actif = 0;
-           vec_clear(&m->observers);
-       }
+       m->paused = !someone_left;
    }
 
    //Retire du vec et libère.

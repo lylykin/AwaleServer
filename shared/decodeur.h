@@ -28,6 +28,8 @@ typedef enum {
     MSG_GET_BIO_RESPONSE,
     MSG_ADD_FRIEND,
     MSG_REMOVE_FRIEND,
+    MSG_FRIEND_REQUEST,
+    MSG_ANSWER_FRIEND_REQUEST,
     MSG_SET_PRIVATE_MODE,
     MSG_LIST_GAMES_REQUEST,
     MSG_LIST_GAMES_RESPONSE,
@@ -36,7 +38,7 @@ typedef enum {
     MSG_SAVED_GAMES_REQUEST,
     MSG_SAVED_GAMES_RESPONSE,
     MSG_LOAD_GAME_REQUEST,
-    MSG_LOAD_GAME_RESPONSE
+    MSG_LOAD_GAME_RESPONSE,
 } MsgType;
 
 /* A single saved-game entry as sent over the wire (names + winner only,
@@ -50,6 +52,7 @@ typedef struct {
 typedef struct {
     char player1[MAX_NOM];
     char player2[MAX_NOM];
+    int paused; /* 1: partie en pause (aucun joueur connecté) */
 } GameInfoMsg;
 
 // Message structure - content[] is only for MSG_CHAT (free text).
@@ -77,6 +80,11 @@ typedef struct {
         struct {                                    /* MSG_ADD/REMOVE_FRIEND    */
             char friend_name[MAX_NOM];
         } friend_op;
+        struct {                                    /* MSG_FRIEND_REQUEST /     */
+            int accepted;                           /* MSG_ANSWER_FRIEND_REQUEST*/
+            char requester_name[MAX_NOM];
+            char target_name[MAX_NOM];
+        } friend_request;
         struct {                                    /* MSG_SET_PRIVATE_MODE     */
             int private_mode;
         } privacy;

@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "match_manager.h"
 #include "client_manager.h"
 #include "persistence.h"
@@ -37,6 +36,7 @@ void resume_match(ClientPtrVec *clients, Client *c)
 
         c->player->match = k;
         c->player->side = side;
+        m->paused = 0;
 
         const char *opp_name = (strcmp(m->noms[0], c->player->name) == 0)
                              ? m->noms[1] : m->noms[0];
@@ -99,6 +99,7 @@ void start_match(ClientPtrVec *clients, Client *adv, Client *me)
 
     Match *m = &matches.data[k];
     m->actif = 1;
+    m->paused = 0;
     vec_init(&m->observers);
 
     int starter = rand() % 2;
@@ -232,7 +233,7 @@ void handle_move(ClientPtrVec *clients, Client *me, int trou)
        snprintf(msg.content, BUF_SIZE - 1,
                 "%s a joue le trou %d. C'est au tour de %s." CRLF,
                 me->player->name, trou, next_name);
-       //send_client(msg, me->sock);
+       send_client(msg, me->sock);
        //if (opp) send_client(msg, opp->sock);
 
        for (int oi = 0; oi < m->observers.length; oi++) {
@@ -262,6 +263,7 @@ void handle_move(ClientPtrVec *clients, Client *me, int trou)
        save_game(m, winner);
 
        m->actif = 0;
+       m->paused = 0;
        me->player->match = -1;
        if (opp && opp->player) opp->player->match = -1;
        vec_clear(&m->observers);

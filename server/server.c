@@ -3,17 +3,11 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
-
+#ifndef WIN32
+#include <signal.h>
+#endif
 #include "server.h"
 
-/* server.c : point d'entrée et boucle principale.
- *
- * players (défini dans client_manager.c) est un PlayerPtrVec : le magasin
- * persistant des identités, chaque ClientPlayer alloué sur le tas. clients
- * est un ClientPtrVec : chaque connexion alloue un Client sur le tas, lié
- * à un ClientPlayer via ->player. À la déconnexion le Client est retiré
- * du vec et libéré, mais le ClientPlayer conserve toutes les données
- * (bio, amis, match, side). */
 
 static void init(void)
 {
@@ -25,6 +19,10 @@ static void init(void)
       puts("WSAStartup failed !");
       exit(EXIT_FAILURE);
    }
+#endif
+#ifndef WIN32
+   /* Un client qui se déconnecte ne doit pas tuer le serveur par SIGPIPE. */
+   signal(SIGPIPE, SIG_IGN);
 #endif
    srand(time(NULL));
    vec_init(&players);
@@ -126,7 +124,6 @@ static void app(void)
                  vec_push(&players, player);
              }
          }
-
          if (!player) {
              closesocket(csock);
              continue;
@@ -142,6 +139,7 @@ static void app(void)
          nc->active = 1;
          nc->player = player;
          nc->pending[0] = '\0';
+         nc->pending_friend[0] = '\0';
          vec_push(&clients, nc);
 
          /* Rattache à une partie en cours si reconnexion. */
@@ -154,8 +152,7 @@ static void app(void)
       }
       else
       {
-         /* Un client existant a envoyé des données ou s'est déconnecté.
-          * On itère sur une copie des pointeurs car remove_client modifie le vec. */
+         //un client existant a envoyé des données ou s'est déconnecté.
          int n = clients.length;
          for (int i = 0; i < n; i++) {
              Client *c = clients.data[i];
@@ -195,7 +192,6 @@ static void app(void)
    }
    end_connection(sock);
 }
-
 int main(void)
 {
    init();

@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <string.h>
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "handlers.h"
 #include "client_manager.h"
 #include "match_manager.h"
 #include "persistence.h"
 
-/* Sous-gestionnaires, regroupés par domaine */
 
-/* Chat et liste des joueurs */
 
 static void handle_chat(ClientPtrVec *clients, Client *client, const char *content) {
     send_message_to_all_clients(clients, client, content, 0);
@@ -17,8 +17,6 @@ static void handle_chat(ClientPtrVec *clients, Client *client, const char *conte
 static void handle_list_request(ClientPtrVec *clients, Client *client) {
     send_list(clients, client->sock);
 }
-
-/* Bio */
 
 static void handle_set_bio(Client *client, const Message *msg) {
     Message resp;
@@ -53,8 +51,7 @@ static void handle_get_bio(ClientPtrVec *clients, Client *client, const char *ta
     int n = target->player->bio.lines.length < MAX_BIO_LINES
           ? target->player->bio.lines.length : MAX_BIO_LINES;
     for (int j = 0; j < n; j++) {
-        strncpy(resp.bio.bio_lines[j], target->player->bio.lines.data[j].value,
-                MAX_BIO_LENGTH - 1);
+        strncpy(resp.bio.bio_lines[j], target->player->bio.lines.data[j].value, MAX_BIO_LENGTH - 1);
         resp.bio.bio_lines[j][MAX_BIO_LENGTH - 1] = '\0';
     }
     resp.bio.line_count = n;
@@ -175,10 +172,6 @@ static void handle_answer_friend_request(ClientPtrVec *clients, Client *client, 
         send_client(resp, requester->sock);
 
         resp.type = MSG_CHAT;
-        snprintf(resp.content, BUF_SIZE - 1, "%s a accepte votre demande d'ami.", answerer->name);
-        send_client(resp, requester->sock);
-
-        resp.type = MSG_CHAT;
         snprintf(resp.content, BUF_SIZE - 1, "%s ajoute aux amis.", req->name);
         send_client(resp, client->sock);
 
@@ -191,14 +184,9 @@ static void handle_answer_friend_request(ClientPtrVec *clients, Client *client, 
         strncpy(resp.friend_request.target_name, client->player->name, MAX_NOM - 1);
         resp.friend_request.target_name[MAX_NOM - 1] = '\0';
         send_client(resp, requester->sock);
-
-        resp.type = MSG_CHAT;
-        snprintf(resp.content, BUF_SIZE - 1, "%s a refuse votre demande d'ami.", client->player->name);
-        send_client(resp, requester->sock);
     }
 }
 
-// manque l'enlèvement de l'ami de l'autre coté
 static void handle_remove_friend(Client *client, const char *friend_name) {
     Message resp;
     ClientPlayer *p = client->player;
@@ -227,7 +215,6 @@ static void handle_remove_friend(Client *client, const char *friend_name) {
     save_persistence_data(&players, &matches);
 }
 
-/* Mode privé */
 
 static void handle_private_mode(Client *client, int enabled) {
     Message resp;
@@ -239,7 +226,6 @@ static void handle_private_mode(Client *client, int enabled) {
     save_persistence_data(&players, &matches);
 }
 
-/* Défis */
 
 static int is_friend_of(const ClientPlayer *target, const char *name) {
     for (int j = 0; j < target->friends.length; j++) {
@@ -318,8 +304,6 @@ static void handle_answer_challenge(ClientPtrVec *clients, Client *client, const
     }
 }
 
-/* Coups de jeu */
-
 static void handle_play_turn(ClientPtrVec *clients, Client *client, int trou) {
     if (client->player->match >= 0) {
         handle_move(clients, client, trou);
@@ -330,13 +314,13 @@ static void handle_play_turn(ClientPtrVec *clients, Client *client, int trou) {
     }
 }
 
-/* Liste des parties et observation */
 
 static void handle_list_games(Client *client) {
     Message resp;
     resp.type = MSG_LIST_GAMES_RESPONSE;
     resp.game_list.count = 0;
     for (int j = 0; j < matches.length; j++) {
+        /* actif == 1 : partie en cours ou en pause (les deux apparaissent). */
         if (matches.data[j].actif && resp.game_list.count < MAX_GAMES_IN_MSG) {
             strncpy(resp.game_list.games[resp.game_list.count].player1,
                     matches.data[j].noms[0], MAX_NOM - 1);
@@ -344,6 +328,8 @@ static void handle_list_games(Client *client) {
             strncpy(resp.game_list.games[resp.game_list.count].player2,
                     matches.data[j].noms[1], MAX_NOM - 1);
             resp.game_list.games[resp.game_list.count].player2[MAX_NOM - 1] = '\0';
+            resp.game_list.games[resp.game_list.count].paused =
+                matches.data[j].paused;
             resp.game_list.count++;
         }
     }
@@ -443,7 +429,6 @@ static void handle_saved_games_request(Client *client) {
     }
     send_client(resp, client->sock);
 }
-
 /* Dispatch central */
 
 void handle_message(ClientPtrVec *clients, Client *client, Message msg)

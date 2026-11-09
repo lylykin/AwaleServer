@@ -50,8 +50,6 @@ void show_commands(const char* name)
      printf("  * /private off - desactiver le mode prive\n");
      printf("  * /saved - lister les parties sauvegardees\n");
      printf("Lors d'une partie : entrez un nombre (1-6) pour sélectionner une case\n");
-     printf("  * /saved - lister les parties sauvegardees\n");
-     printf("  * /ranking - afficher le classement Elo\n");
 }
 
 static void app(const char *address, const char *name)
@@ -234,11 +232,6 @@ static void app(const char *address, const char *name)
          else if (strcmp(buffer, "/saved") == 0)
          {
             msg.type = MSG_SAVED_GAMES_REQUEST;
-            send_server(msg, sock);
-         }
-         else if (strcmp(buffer, "/ranking") == 0)
-         {
-            msg.type = MSG_RANKING_REQUEST;
             send_server(msg, sock);
          }
          else

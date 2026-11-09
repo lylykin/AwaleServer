@@ -3,12 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* persistence.c : sérialise directement les types runtime (ClientPlayer,
- * Match) en JSON et les relit au démarrage. Les vec_t (bio, friends,
- * observers) sont parcourus via leur champ data[0..length-1] ; les champs
- * transient (sock, active, pending, observers, saved) ne sont pas écrits. */
 
-/* ---- Sérialisation d'un ClientPlayer vers un objet cJSON ---- */
 static cJSON *player_to_json(const ClientPlayer *p) {
     cJSON *obj = cJSON_CreateObject();
     if (!obj) return NULL;
@@ -41,12 +36,12 @@ static cJSON *player_to_json(const ClientPlayer *p) {
     return obj;
 }
 
-/* ---- Sérialisation d'un Match vers un objet cJSON ---- */
 static cJSON *match_to_json(const Match *m) {
     cJSON *obj = cJSON_CreateObject();
     if (!obj) return NULL;
 
     cJSON_AddNumberToObject(obj, "active", m->actif);
+    cJSON_AddNumberToObject(obj, "paused", m->paused);
 
     cJSON *names = cJSON_AddArrayToObject(obj, "player_names");
     if (names) {
@@ -86,7 +81,6 @@ static cJSON *match_to_json(const Match *m) {
     return obj;
 }
 
-/* ---- Désérialisation d'un objet cJSON vers un ClientPlayer ---- */
 static void json_to_player(cJSON *obj, ClientPlayer *p) {
     memset(p, 0, sizeof(ClientPlayer));
     vec_init(&p->bio.lines);
@@ -150,6 +144,9 @@ static void json_to_match(cJSON *obj, Match *m) {
     cJSON *active = cJSON_GetObjectItemCaseSensitive(obj, "active");
     if (active && cJSON_IsNumber(active)) m->actif = active->valueint;
 
+    cJSON *paused = cJSON_GetObjectItemCaseSensitive(obj, "paused");
+    if (paused && cJSON_IsNumber(paused)) m->paused = paused->valueint;
+
     cJSON *names = cJSON_GetObjectItemCaseSensitive(obj, "player_names");
     if (names && cJSON_IsArray(names)) {
         for (int j = 0; j < 2; j++) {
@@ -195,8 +192,6 @@ static void json_to_match(cJSON *obj, Match *m) {
         if (joueur && cJSON_IsNumber(joueur)) m->g.joueur = joueur->valueint;
     }
 }
-
-/* ---- API publique ---- */
 
 void save_persistence_data(const PlayerPtrVec *players, const MatchVec *matches)
 {

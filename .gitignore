@@ -1,6 +1,5 @@
 bin/server
 bin/client
-awale_game
 a.out
 *.o
 *.exe

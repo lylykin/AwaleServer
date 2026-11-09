@@ -1,11 +1,7 @@
-#ifndef HANDLERS_H
-#define HANDLERS_H
+#pragma once
 
-/* handlers.h : dispatch des messages entrants. handle_message() est le
- * switch central ; chaque groupe de cas est dans sa propre fonction. */
+// handlers.h : dispatch des messages entrants.
 
 #include "../shared/types.h"
 
 void handle_message(ClientPtrVec *clients, Client *client, Message msg);
-
-#endif /* HANDLERS_H */

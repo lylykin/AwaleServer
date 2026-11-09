@@ -71,14 +71,30 @@ void handle_msg_server(int sock, Message msg) {
         case MSG_LIST_RESPONSE:
             printf("Joueurs en ligne (%d) :", msg.player_list.count);
             for (int i = 0; i < msg.player_list.count; i++) {
-                printf(" %s", msg.player_list.names[i]);
+                printf(" - %s\n", msg.player_list.names[i]);
             }
-            printf("\n");
+            printf("==========================\n\n");
             break;
 
         case MSG_SEND_CHALLENGE:
             printf("%s vous defie ! Accepter ? (o/n)\n",
                    msg.challenge.challenger_name);
+            break;
+
+        case MSG_FRIEND_REQUEST:
+            printf("%s veut vous ajouter comme ami ! Accepter ? (o/n)\n",
+                   msg.friend_request.requester_name);
+            break;
+
+        case MSG_ANSWER_FRIEND_REQUEST:
+            if (msg.friend_request.accepted) {
+                printf("%s a accepte votre demande d'ami !\n",
+                       msg.friend_request.target_name);
+            } else {
+                printf("%s a refuse votre demande d'ami.\n",
+                       msg.friend_request.target_name);
+            }
+            printf("==========================\n\n");
             break;
 
         case MSG_ANSWER_CHALLENGE:
@@ -87,6 +103,7 @@ void handle_msg_server(int sock, Message msg) {
             } else {
                 printf("%s a refuse votre defi.\n", msg.challenge.challenged_name);
             }
+            printf("==========================\n\n");
             break;
 
         case MSG_GAME_START:
@@ -122,6 +139,7 @@ void handle_msg_server(int sock, Message msg) {
                        msg.game_over.winner,
                        msg.game_over.score0, msg.game_over.score1);
             }
+            printf("==========================\n\n");
             break;
         }
 
@@ -134,12 +152,16 @@ void handle_msg_server(int sock, Message msg) {
             break;
 
         case MSG_LIST_GAMES_RESPONSE:
+            // i correspond à l'index de la partie
             printf("Parties en cours (%d) :\n", msg.game_list.count);
             for (int i = 0; i < msg.game_list.count; i++) {
-                printf("  [%d] %s vs %s\n", i,
+                printf("  [%d] %s vs %s%s\n", i,
                        msg.game_list.games[i].player1,
-                       msg.game_list.games[i].player2);
+                       msg.game_list.games[i].player2,
+                       msg.game_list.games[i].paused ? " (en pause)" : "");
             }
+
+            printf("==========================\n\n");
             break;
 
         case MSG_GET_BIO_RESPONSE:
@@ -147,6 +169,7 @@ void handle_msg_server(int sock, Message msg) {
             for (int i = 0; i < msg.bio.line_count; i++) {
                 printf("  %s\n", msg.bio.bio_lines[i]);
             }
+            printf("==========================\n\n");
             break;
 
         case MSG_SAVED_GAMES_RESPONSE:

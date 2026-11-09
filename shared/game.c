@@ -25,20 +25,16 @@ Position repart_seed(int seeds, int trou_selected, int joueur,
   return fin;
 }
 
-/* Règle de capture (Awale simplifié) : si la dernière graine atterrit
- * chez l'adversaire (camp != joueur) et que ce trou contient 2 ou 3
- * graines, le joueur les capture dans son grenier. fin.trou - 1 reconvertit
- * le "trou suivant" en trou d'atterrissage réel. Ici on ne capture qu'un
- * seul trou (pas de capture en chaîne) - simplification volontaire. */
+// simplification : on ne capture que les graines dans le trou sur lequel on a fini (si du coté de l'adversaire)
 void mettre_dans_grenier(int joueur, Position fin, int plateau[NB_JOUEURS][NB_TROUS],
                          int grenier[2]) {
   int camp = fin.camp;
   int t = fin.trou - 1;
 
-  if (camp != joueur && (plateau[camp][t] == 2 || plateau[camp][t] == 3)) {
-    grenier[joueur] += plateau[camp][t];
-    plateau[camp][t] = 0;
-  }
+ if (plateau[camp][t] != 1 && camp != joueur) {
+     grenier[joueur] += plateau[camp][t];
+   plateau[camp][t] = 0;
+ }
 }
 
 /* La partie se termine quand une rangée est vide. Ici le gagnant est
@@ -84,13 +80,6 @@ void init_game(Game *game, int premier) {
   game->joueur = premier;
 }
 
-/* Affiche le plateau sur stdout : joueur 0 en haut (trous 6→1 de gauche
- * à droite), joueur 1 en bas (trous 1→6). Les graines tournent dans le
- * sens anti-horaire. */
-/* Affiche le plateau du point de vue du joueur local (viewer_side) :
- * sa rangée en bas, celle de l'adversaire en haut (inversée), grenier à
- * droite de chaque rangée. En haut : qui vient de jouer. En bas : de qui
- * est le tour. viewer_side = -1 : fallback sur game->joueur. */
 void print_board(const Game *game, int viewer_side,
                  const char *name0, const char *name1) {
   int bottom = (viewer_side >= 0) ? viewer_side : game->joueur;
